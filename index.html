@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake Reloaded</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Courier New', Courier, monospace;
+      color: #39FF14;
+    }
+
+    #hud {
+      width: 600px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 4px 8px 4px;
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    #hud span {
+      opacity: 0.85;
+    }
+
+    canvas {
+      display: block;
+      background-color: #111;
+      border: 1px solid #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Score HUD above canvas -->
+  <div id="hud">
+    <span>Score: <span id="score">0</span></span>
+    <span>Best: <span id="highScore">0</span></span>
+  </div>
+
+  <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+  <script>
+    // ---- Constants ----
+    const CANVAS_SIZE = 600;
+    const GRID_COUNT  = 20;           // 20x20 grid
+    const CELL_SIZE   = CANVAS_SIZE / GRID_COUNT; // 30px per cell
+
+    const COLOR_BG        = '#111';
+    const COLOR_GRID_LINE = '#1a1a1a';
+
+    // ---- Canvas setup ----
+    const canvas = document.getElementById('gameCanvas');
+    const ctx    = canvas.getContext('2d');
+
+    // ---- Draw helpers ----
+
+    /**
+     * Fill the canvas background.
+     */
+    function drawBackground() {
+      ctx.fillStyle = COLOR_BG;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    }
+
+    /**
+     * Draw subtle grid lines across the canvas.
+     */
+    function drawGrid() {
+      ctx.strokeStyle = COLOR_GRID_LINE;
+      ctx.lineWidth   = 1;
+
+      // Vertical lines
+      for (let col = 1; col < GRID_COUNT; col++) {
+        const x = col * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, CANVAS_SIZE);
+        ctx.stroke();
+      }
+
+      // Horizontal lines
+      for (let row = 1; row < GRID_COUNT; row++) {
+        const y = row * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(CANVAS_SIZE, y);
+        ctx.stroke();
+      }
+    }
+
+    // ---- Initial render ----
+    drawBackground();
+    drawGrid();
+  </script>
+</body>
+</html>
