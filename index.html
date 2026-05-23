@@ -3,428 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Snake Reloaded</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background-color: #111;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      font-family: 'Courier New', Courier, monospace;
-      color: #39FF14;
-    }
-
-    #hud {
-      width: 600px;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 4px 8px 4px;
-      font-size: 16px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    #hud span {
-      opacity: 0.85;
-    }
-
-    canvas {
-      display: block;
-      background-color: #111;
-      border: 1px solid #1a1a1a;
-    }
-  </style>
+  <title>Snake Reloaded | Retro 8-Bit HTML5 Canvas Arcade Game</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Play Snake Reloaded, a browser-based classic snake arcade game featuring a stunning cyberpunk neon aesthetic, custom particle sparks, synthesized Web Audio sound effects, and a realistic CRT mode." />
+  <meta name="keywords" content="snake game, html5 game, canvas game, retro arcade, chiptune synth, vanilla javascript, web audio api, crt scanlines" />
+  <meta name="author" content="stonedhawk" />
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="Snake Reloaded | Retro 8-Bit HTML5 Canvas Arcade Game" />
+  <meta property="og:description" content="A browser-based classic snake game with a modern retro neon aesthetic. Playable directly with zero dependencies." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="screenshot.png" />
+  
+  <!-- External CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <div id="hud">
-    <span>Score: <span id="score">0</span></span>
-    <span id="speedLabel" style="opacity:0.4; font-size:13px; align-self:center;">SPD 1</span>
-    <span>Best: <span id="highScore">0</span></span>
-  </div>
+  <main class="game-container">
+    
+    <!-- Title Header -->
+    <header>
+      <h1 class="brand-title">SNAKE</h1>
+      <p class="brand-subtitle">R E L O A D E D</p>
+    </header>
 
-  <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <!-- Retro Arcade Cabinet Frame -->
+    <section class="arcade-cabinet crt-active" id="arcadeCabinet">
+      
+      <!-- HUD Dashboard Banner -->
+      <div class="hud-panel">
+        <div class="hud-item">
+          <span class="hud-label">SCORE</span>
+          <span class="hud-val" id="score">0000</span>
+        </div>
+        
+        <div class="hud-speed" id="speedLabel">CHILL (LVL 1)</div>
+        
+        <div class="hud-item right-aligned">
+          <span class="hud-label">BEST RECORD</span>
+          <span class="hud-val" id="highScore">0000</span>
+        </div>
+      </div>
 
+      <!-- Main Game Canvas Rendering Screen -->
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+    </section>
+
+    <!-- Arcade Bezel Interactive Control Panel Dashboard -->
+    <section class="dashboard-panel" id="dashboardPanel">
+      <div class="controls-tips">
+        <p>🎮 <strong>CONTROLS:</strong> [W][A][S][D] / [ARROWS] to Navigate</p>
+        <p>⚡ <strong>UTILITIES:</strong> [SPACE] to Play/Replay  |  [P] / [ESC] to Pause</p>
+      </div>
+
+      <div class="btn-group">
+        <!-- Mechanical Toggle Buttons -->
+        <button class="arcade-btn red-glow" id="muteBtn" aria-label="Mute Audio Toggle">
+          🔊 AUDIO: ON
+        </button>
+        <button class="arcade-btn green-glow" id="crtBtn" aria-label="CRT Monitor Filter Toggle">
+          📺 CRT: ON
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Game Scripts Modular Loadout (Ensuring file:// compatibility without CORS restrictions) -->
+  <script src="js/constants.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/game.js"></script>
+
+  <!-- Startup Orchestrator -->
   <script>
-    // ---- Constants ----
-    const CANVAS_SIZE      = 600;
-    const GRID_COUNT       = 30;
-    const CELL_SIZE        = CANVAS_SIZE / GRID_COUNT; // 20px
-    const SEGMENT_GAP      = 1;
-    const INTERVAL_START   = 150;  // ms - starting speed
-    const INTERVAL_MIN     = 80;   // ms - fastest speed
-    const INTERVAL_STEP    = 10;   // ms reduction every 5 foods
-    const FOODS_PER_LEVEL  = 5;    // foods eaten before speed bump
-    const SCORE_PER_FOOD   = 10;
-
-    const COLOR_BG         = '#111';
-    const COLOR_GRID_LINE  = '#1a1a1a';
-    const COLOR_SNAKE_HEAD = '#4AFF20';
-    const COLOR_SNAKE_BODY = '#39FF14';
-    const COLOR_FOOD       = '#FF3131';
-
-    const DIR = {
-      RIGHT: { x: 1,  y: 0  },
-      LEFT:  { x: -1, y: 0  },
-      UP:    { x: 0,  y: -1 },
-      DOWN:  { x: 0,  y: 1  },
-    };
-
-    // Game states
-    const STATE_START    = 'start';
-    const STATE_PLAYING  = 'playing';
-    const STATE_GAMEOVER = 'gameover';
-
-    // ---- Canvas / DOM ----
-    const canvas      = document.getElementById('gameCanvas');
-    const ctx         = canvas.getContext('2d');
-    const scoreEl     = document.getElementById('score');
-    const highScoreEl = document.getElementById('highScore');
-    const speedLabel  = document.getElementById('speedLabel');
-
-    // ---- Persistent high score ----
-    let highScore = parseInt(localStorage.getItem('snakeHighScore') || '0', 10);
-    highScoreEl.textContent = highScore;
-
-    // ---- Game state ----
-    let state;         // STATE_START | STATE_PLAYING | STATE_GAMEOVER
-    let snake;
-    let direction;
-    let nextDir;
-    let food;
-    let score;
-    let foodEaten;     // total foods eaten this game (drives speed)
-    let speedLevel;    // 1-based display level
-    let interval;      // current ms interval
-    let gameLoop;
-
-    // Flash effect: bright white overlay for 1 frame after eating
-    let flashFrames = 0;
-
-    // Pulsing glow for food: driven by requestAnimationFrame clock
-    let glowPhase = 0;
-    let rafHandle;
-
-    // ---- Snake init ----
-    function initSnake() {
-      const cx = Math.floor(GRID_COUNT / 2);
-      const cy = Math.floor(GRID_COUNT / 2);
-      snake = [
-        { x: cx,     y: cy },
-        { x: cx - 1, y: cy },
-        { x: cx - 2, y: cy },
-      ];
-      direction = DIR.RIGHT;
-      nextDir   = DIR.RIGHT;
-    }
-
-    // ---- Food ----
-    function spawnFood() {
-      const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
-      let cell;
-      do {
-        cell = {
-          x: Math.floor(Math.random() * GRID_COUNT),
-          y: Math.floor(Math.random() * GRID_COUNT),
-        };
-      } while (occupied.has(`${cell.x},${cell.y}`));
-      food = cell;
-    }
-
-    // ---- Score ----
-    function updateScore(val) {
-      score = val;
-      scoreEl.textContent = score;
-      if (score > highScore) {
-        highScore = score;
-        highScoreEl.textContent = highScore;
-        localStorage.setItem('snakeHighScore', highScore);
-      }
-    }
-
-    // ---- Speed ----
-    function recalcSpeed() {
-      speedLevel = Math.floor(foodEaten / FOODS_PER_LEVEL) + 1;
-      interval   = Math.max(INTERVAL_MIN, INTERVAL_START - (speedLevel - 1) * INTERVAL_STEP);
-      speedLabel.textContent = `SPD ${speedLevel}`;
-    }
-
-    function restartLoop() {
-      clearInterval(gameLoop);
-      gameLoop = setInterval(tick, interval);
-    }
-
-    // ---- Collision ----
-    function isOutOfBounds(cell) {
-      return cell.x < 0 || cell.x >= GRID_COUNT ||
-             cell.y < 0 || cell.y >= GRID_COUNT;
-    }
-
-    function hitsBody(cell) {
-      return snake.slice(1).some(s => s.x === cell.x && s.y === cell.y);
-    }
-
-    // ---- Step ----
-    function stepSnake() {
-      direction = nextDir;
-
-      const head    = snake[0];
-      const newHead = { x: head.x + direction.x, y: head.y + direction.y };
-
-      if (isOutOfBounds(newHead) || hitsBody(newHead)) {
-        endGame();
-        return;
-      }
-
-      const ate = newHead.x === food.x && newHead.y === food.y;
-      snake.unshift(newHead);
-      if (!ate) {
-        snake.pop();
-      } else {
-        foodEaten++;
-        updateScore(score + SCORE_PER_FOOD);
-        flashFrames = 2; // trigger eat flash
-        spawnFood();
-
-        // Speed up every FOODS_PER_LEVEL foods
-        const newLevel = Math.floor(foodEaten / FOODS_PER_LEVEL) + 1;
-        if (newLevel !== speedLevel) {
-          recalcSpeed();
-          restartLoop();
-        }
-      }
-    }
-
-    // ---- End game ----
-    function endGame() {
-      clearInterval(gameLoop);
-      state = STATE_GAMEOVER;
-    }
-
-    // ---- Input ----
-    document.addEventListener('keydown', (e) => {
-      if (e.key === ' ') {
-        if (state === STATE_START || state === STATE_GAMEOVER) {
-          startGame();
-        }
-        return;
-      }
-      if (state !== STATE_PLAYING) return;
-      switch (e.key) {
-        case 'ArrowRight': case 'd': case 'D':
-          if (direction !== DIR.LEFT)  nextDir = DIR.RIGHT; break;
-        case 'ArrowLeft':  case 'a': case 'A':
-          if (direction !== DIR.RIGHT) nextDir = DIR.LEFT;  break;
-        case 'ArrowUp':    case 'w': case 'W':
-          if (direction !== DIR.DOWN)  nextDir = DIR.UP;    break;
-        case 'ArrowDown':  case 's': case 'S':
-          if (direction !== DIR.UP)    nextDir = DIR.DOWN;  break;
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      // Boot up the main engine
+      GameEngine.init();
     });
-
-    // ---- Draw helpers ----
-
-    function drawBackground() {
-      ctx.fillStyle = COLOR_BG;
-      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    }
-
-    function drawGrid() {
-      ctx.strokeStyle = COLOR_GRID_LINE;
-      ctx.lineWidth   = 1;
-      for (let col = 1; col < GRID_COUNT; col++) {
-        const x = col * CELL_SIZE;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, CANVAS_SIZE);
-        ctx.stroke();
-      }
-      for (let row = 1; row < GRID_COUNT; row++) {
-        const y = row * CELL_SIZE;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(CANVAS_SIZE, y);
-        ctx.stroke();
-      }
-    }
-
-    function drawSegment(cell, color) {
-      const px = cell.x * CELL_SIZE + SEGMENT_GAP;
-      const py = cell.y * CELL_SIZE + SEGMENT_GAP;
-      const sz = CELL_SIZE - SEGMENT_GAP * 2;
-      ctx.fillStyle = color;
-      ctx.fillRect(px, py, sz, sz);
-    }
-
-    function drawSnake() {
-      snake.forEach((seg, i) => {
-        drawSegment(seg, i === 0 ? COLOR_SNAKE_HEAD : COLOR_SNAKE_BODY);
-      });
-    }
-
-    // Food with a pulsing radial glow driven by glowPhase (0..2*PI)
-    function drawFood() {
-      const cx = food.x * CELL_SIZE + CELL_SIZE / 2;
-      const cy = food.y * CELL_SIZE + CELL_SIZE / 2;
-      const r  = CELL_SIZE / 2 - SEGMENT_GAP - 1;
-
-      // Glow: oscillates between low and high alpha
-      const glowAlpha  = 0.15 + 0.25 * ((Math.sin(glowPhase) + 1) / 2);
-      const glowRadius = r + 5 + 3 * ((Math.sin(glowPhase) + 1) / 2);
-
-      const grad = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, glowRadius);
-      grad.addColorStop(0,   `rgba(255, 49, 49, ${glowAlpha + 0.4})`);
-      grad.addColorStop(0.5, `rgba(255, 49, 49, ${glowAlpha})`);
-      grad.addColorStop(1,   'rgba(255, 49, 49, 0)');
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Solid circle on top
-      ctx.fillStyle = COLOR_FOOD;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Brief white flash overlay when eating food
-    function drawFlash() {
-      if (flashFrames <= 0) return;
-      const alpha = flashFrames === 2 ? 0.18 : 0.08;
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      flashFrames--;
-    }
-
-    // Start screen overlay
-    function drawStartScreen() {
-      drawBackground();
-      drawGrid();
-
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'middle';
-      const midX = CANVAS_SIZE / 2;
-
-      // Title
-      ctx.fillStyle = '#39FF14';
-      ctx.font      = 'bold 64px "Courier New", Courier, monospace';
-      ctx.fillText('SNAKE', midX, 230);
-
-      // Subtitle
-      ctx.fillStyle = 'rgba(57, 255, 20, 0.6)';
-      ctx.font      = '18px "Courier New", Courier, monospace';
-      ctx.fillText('R E L O A D E D', midX, 278);
-
-      // Prompt
-      ctx.fillStyle = 'rgba(57, 255, 20, 0.5)';
-      ctx.font      = '16px "Courier New", Courier, monospace';
-      ctx.fillText('Press SPACE to start', midX, 360);
-
-      // High score if set
-      if (highScore > 0) {
-        ctx.fillStyle = 'rgba(57, 255, 20, 0.35)';
-        ctx.font      = '14px "Courier New", Courier, monospace';
-        ctx.fillText(`Best: ${highScore}`, midX, 396);
-      }
-    }
-
-    // Game over overlay
-    function drawGameOver() {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-      const isNewHigh = score > 0 && score === highScore;
-      const midX = CANVAS_SIZE / 2;
-
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'middle';
-
-      ctx.fillStyle = '#FF3131';
-      ctx.font      = 'bold 48px "Courier New", Courier, monospace';
-      ctx.fillText('GAME OVER', midX, 200);
-
-      ctx.fillStyle = '#39FF14';
-      ctx.font      = '22px "Courier New", Courier, monospace';
-      ctx.fillText(`Score: ${score}`, midX, 268);
-
-      ctx.font = '18px "Courier New", Courier, monospace';
-      ctx.fillText(`Best: ${highScore}`, midX, 304);
-
-      if (isNewHigh) {
-        ctx.fillStyle = '#FFD700';
-        ctx.font      = 'bold 20px "Courier New", Courier, monospace';
-        ctx.fillText('NEW HIGH SCORE!', midX, 344);
-      }
-
-      ctx.fillStyle = '#39FF14';
-      ctx.font      = '13px "Courier New", Courier, monospace';
-      ctx.fillText(`Speed level: ${speedLevel}`, midX, isNewHigh ? 382 : 352);
-
-      ctx.fillStyle = 'rgba(57, 255, 20, 0.5)';
-      ctx.font      = '14px "Courier New", Courier, monospace';
-      ctx.fillText('Press SPACE to play again', midX, isNewHigh ? 418 : 388);
-    }
-
-    // ---- rAF render loop (runs always for smooth glow + overlays) ----
-    function renderLoop() {
-      glowPhase += 0.06; // controls glow pulse speed
-
-      if (state === STATE_PLAYING) {
-        // Redraw food each frame for smooth glow (snake redraws on tick)
-        // To avoid tearing, just redraw the whole frame here too
-        drawBackground();
-        drawGrid();
-        drawFood();
-        drawSnake();
-        drawFlash();
-      } else if (state === STATE_GAMEOVER) {
-        // Keep the last playing frame visible under the overlay
-        drawBackground();
-        drawGrid();
-        drawFood();
-        drawSnake();
-        drawGameOver();
-      }
-      // STATE_START is drawn once on init, no rAF redraw needed
-
-      rafHandle = requestAnimationFrame(renderLoop);
-    }
-
-    // ---- Tick (setInterval - moves the snake) ----
-    function tick() {
-      if (state !== STATE_PLAYING) return;
-      stepSnake();
-    }
-
-    // ---- Start ----
-    function startGame() {
-      clearInterval(gameLoop);
-      state      = STATE_PLAYING;
-      foodEaten  = 0;
-      speedLevel = 1;
-      interval   = INTERVAL_START;
-      speedLabel.textContent = 'SPD 1';
-      updateScore(0);
-      initSnake();
-      spawnFood();
-      flashFrames = 0;
-      gameLoop = setInterval(tick, interval);
-    }
-
-    // ---- Init ----
-    state = STATE_START;
-    drawStartScreen();
-    rafHandle = requestAnimationFrame(renderLoop);
   </script>
+
 </body>
 </html>

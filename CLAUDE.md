@@ -1,34 +1,28 @@
-# Snake Reloaded
+# Snake Reloaded - Developer Reference
 
-A browser-based classic snake game with a modern retro aesthetic. Single HTML file, zero dependencies.
+A browser-based classic arcade snake game with a modern retro neon aesthetic, high-fidelity sound synthesis, and interactive CRT scanline filters.
 
-## What we're building
+## Core Features & Gameplay
+- **Dimensions**: 600x600 grid canvas utilizing a 30x30 coordinate grid (each cell = 20px).
+- **Snake Mechanics**: Starts at coordinates center, 3 segments long, moving right. Rounded segments with dynamic body colors and interactive looking eyes on the head.
+- **Inputs**: Standard WASD keys and Arrow keys for direction control. Direction cannot be directly reversed.
+- **States**: `START`, `PLAYING`, `PAUSED` (P or Esc), and `GAMEOVER` (Spacebar to replay).
+- **Food System**: Spawns randomly. High-glow cherry red apples (+10 score). 10% chance to spawn Golden Apple (+30 score, rich chiptune beep, golden particle sparks).
+- **Score System**: +10 standard / +30 golden. Persistent best record (high score) via browser `localStorage`.
+- **Speed Mechanics**: Level increases every 5 food consumed, starting at 150ms interval and accelerating down to 70ms.
+- **Audio Synthesizer**: Programmatically generated 8-bit sound effects using browser `AudioContext` (Zero external audio files). Supports mute state.
+- **Scanlines (CRT)**: Horizontal screen filter, subtle RGB color shifts, and scanline flickering toggled on/off via dashboard button.
 
-- 600x600 canvas with a 20x20 grid (each cell = 30px)
-- Snake starts at center, 3 segments long, moving right
-- Arrow keys AND WASD for direction control
-- Cannot reverse direction (pressing left while moving right is ignored)
-- Food spawns at random empty cell (bright green apple)
-- Snake grows by 1 segment when eating food
-- Game over on wall collision or self collision
-- Score: +10 per food eaten
-- High score persisted in localStorage
-- Speed increases every 5 food items eaten (starts at 150ms, minimum 80ms)
-- Grid lines visible but subtle (dark gray on black)
-- Snake head is a slightly different shade than the body
-- Smooth color: neon green snake (#39FF14), dark background (#111)
-- Start screen, playing state, game over screen with score and high score
+## Architecture & Worktree Structure
+The project is modularized to improve readability, maintainability, and clean code principles:
+- **[index.html](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/index.html)**: Semantic markup, layout, and HUD widgets.
+- **[css/style.css](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/css/style.css)**: Glassmorphic console themes, neon animations, mechanical button states, and CRT scanlines overlays.
+- **[js/constants.js](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/js/constants.js)**: Palette parameters, game directions, speed constants, and configuration parameters.
+- **[js/sound.js](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/js/sound.js)**: Web Audio API chiptunes synthesizer.
+- **[js/particles.js](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/js/particles.js)**: Neon spark explosion rendering.
+- **[js/game.js](file:///Users/rahul.shah/Documents/Antigravity/Snake%20Reloaded/js/game.js)**: Keyboard mappings, grid layouts, collisions, scoring updates, and core canvas drawing logic.
 
-## Tech
-
-- Vanilla JavaScript
-- HTML5 Canvas API
-- setInterval game loop (not rAF, since snake moves in discrete steps)
-- All code in a single index.html file
-
-## Constraints
-
-- No em dashes in comments or text
-- Keep code clean and well-commented
-- Game must be playable on desktop browsers (Chrome, Firefox, Safari)
-- Canvas must be centered on the page with a dark background
+## Technical Constraints & Guidelines
+- Maintain 100% direct double-click `file://` execution capabilities inside standard browsers (avoid CORS dependencies).
+- Keep code fully documented, using clear procedural functions.
+- Do not use external libraries or asset links; utilize raw canvas vectors and audio oscillators.
